@@ -1,6 +1,7 @@
 ###########################
 # plague game for 15-112 tp
 # Nirmay Bhanderi (nbhander)
+# Saved on github.com
 ###########################
 ##############
 # data on weekly restaurant visits: https://www.thesimpledollar.com/save-money/dont-eat-out-as-often/#:~:text=The%20average%20American%20eats%20an,month%20eaten%20outside%20the%20home.

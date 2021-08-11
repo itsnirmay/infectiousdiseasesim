@@ -6,7 +6,7 @@
 ##############
 # data on weekly restaurant visits: https://www.thesimpledollar.com/save-money/dont-eat-out-as-often/#:~:text=The%20average%20American%20eats%20an,month%20eaten%20outside%20the%20home.
 # study modelling human intra urban movement : https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0132576
-
+# research on R0 and incubation times: https://web.stanford.edu/~jhj1/teachingdocs/Jones-on-R0.pdf
 ##############
 import math, copy, random
 
@@ -48,18 +48,22 @@ class House(object):
         self.col = column
         self.numberPeople = random.choice([1,2,3,4])
         self.numPeople = self.numberPeople
+        self.peoples = []
         self.people = []
 
         if(self.numberPeople == 1 or self.numberPeople == 2):
             for x in range(self.numPeople):
                 personality = random.choice(['social', 'isolated', 'safe'])
+                self.peoples.append(Person(personality, 'worker', self.row , self.col + x, self))
                 self.people.append(Person(personality, 'worker', self.row , self.col + x, self))
         else:
             for x in range(2):
                 personality = random.choice(['social', 'isolated', 'safe'])
+                self.peoples.append(Person(personality, 'worker', self.row , self.col + x, self))
                 self.people.append(Person(personality, 'worker', self.row , self.col + x, self))
             for y in range(self.numberPeople - 2):
                 personality = random.choice(['social', 'isolated', 'safe'])
+                self.peoples.append(Person(personality, 'student', self.row + 1, self.col + y, self))
                 self.people.append(Person(personality, 'student', self.row + 1, self.col + y, self))
 
 
@@ -78,19 +82,19 @@ class Person(object):
         self.workPlace = None
         self.school = None
         self.placesVisited = []
-        self.peopleToInfect = 0
+        
         self.incubationTime = None
         self.R0 = None
         self.dailyInfectionAverage = None
         self.parkVisits = 0
         self.restaurantVisits = 0
-        self.coldrawor = 'light green'
-    def infect(self):
-        self.infected = True
-        self.peopleToInfect = app.r0/app.incubationPeriod
+        self.color = 'light green'
+        self.daysSinceInfected = None
+        
     def goHome(self):
         self.row = self.homeRow
         self.col = self.homeCol
+        self.house.numPeople += 1
 
     def goToSchool(self):
         self.row = self.school.row
@@ -188,18 +192,18 @@ def appStarted(app):
     app.mode2 = False
     app.mode3 = False
     app.mode4 = False
-    app.timerDelay = 500
+    app.timerDelay = 5000
     app.pause = False
 def initializeSchoolsandWorkplaces(app):
     for house in app.houses:
-        for person in house.people:
+        for person in house.peoples:
             if(person.job == 'worker'):
                 person.initWorkPlace(app.workPlaces)
             else:
                 person.initSchool(app.schools)
 def initializeR0andIncubation(app):
     for house in app.houses:
-        for person in house.people:
+        for person in house.peoples:
             person.initializeR0andIncubationTime(app.R0Low, app.R0High, app.incubationTimeLow, app.incubationTimeHigh)
 #every second, moves dots and does all of the differnet infection and death things
 def timerFired(app):
@@ -207,11 +211,18 @@ def timerFired(app):
         return
     if not app.mode4:
         return
+    
+    
+    
     if(app.dayTime == 3):
+    
+            
         app.dayTime = 0
         app.currDay += 1
+    
     else:app.dayTime += 1
     oneMovement(app)
+    
 #algorithm to simulate movement for each person each day
 def oneMovement(app):
     '''
@@ -222,9 +233,21 @@ def oneMovement(app):
    max amount of times to go to restaurant is 4 a week since that is the average in reality, max park visits is 2
     3: everyone comes home (this is where family spread is calculated)
     '''
-    print('hello')
+    if(app.dayTime == 1):
+        for workPlace in app.workPlaces:
+            infectionCalculation(app, workPlace)
+        for school in app.schools:
+            infectionCalculation(app, school)
+    if(app.dayTime == 3):
+        for restaurant in app.restaurants:
+            infectionCalculation(app, restaurant)
+        for park in app.parks:
+            infectionCalculation(app, park)
+        
     for house in app.houses:
-        for person in house.people:
+        
+        for person in house.peoples:
+            
             if(app.currDay % 7 < 5):
                 if(app.dayTime == 0):
                 #if a person is a student, they MUST go to school and come home every weekday
@@ -233,31 +256,30 @@ def oneMovement(app):
                         person.atHome = False
                         person.house.people.remove(person)
                         person.school.people.append(person)
-                        print('hello')
+                        
+                        
                     #workers must go to work every weekday
                     elif(person.job == 'worker'):
                         person.goToWork()
                         person.house.people.remove(person)
                         person.workPlace.people.append(person)
                         person.atHome = False
-                        print('hello')
+                        
+                       
                     for House in app.houses:
                         House.numPeople = 0
+                        
                 #everyone goes home
                 elif(app.dayTime == 1):
                     for school in app.schools:
-                        infectionCalculation(app,school)
-                        
                         if person in school.people:
                             school.people.remove(person)
                     for work in app.workPlaces:
-                        infectionCalculation(app, work)
-                        
                         if person in work.people:
                             work.people.remove(person)
                     person.goHome()
                     person.house.people.append(person)
-                   
+                    
                     person.atHome = True
                     for workPlace in app.workPlaces:
                         workPlace.numPeople = 0
@@ -291,12 +313,12 @@ def oneMovement(app):
                         person.atHome = False
                         
                 elif(app.dayTime == 3):
-                    for restaurant in app.restaurant:
-                        infectionCalculation(app,restaurant)
+                    for restaurant in app.restaurants:
+                        
                         if person in restaurant.people:
-                            restuarant.people.remove(person)
+                            restaurant.people.remove(person)
                     for park in app.parks:
-                        infectionCalculation(app, park)
+                       
                         if person in park.people:
                             park.people.remove(person)
                     person.house.people.append(person)
@@ -308,7 +330,13 @@ def oneMovement(app):
                         restaurant.numPeople = 0
                     for park in app.parks:
                         park.numPeople = 0
-                    
+                    allInfected = True
+                    for house in app.houses:
+                        for person in house.peoples:
+                            if ( not person.infected):
+                                allInfected = False
+                    if(allInfected):
+                        app.pause = True
                         
 
    
@@ -324,24 +352,24 @@ def infectionCalculation(app,place):
     infectedList = []
     for person in place.people:
         if person.infected:
-            numInfected += 1
             infectedList.append(person)
     totalInfectionAverage = 0
     for person in infectedList:
         totalInfectionAverage += person.dailyInfectionAverage
 
     randNum = random.randint(0,100)
-    temp = totalInfectionAverage % 1
+    temp = (totalInfectionAverage % 1)
     if(randNum < temp * 100):
         totalToBeInfected = int(totalInfectionAverage) + 1
     else: totalToBeInfected = int(totalInfectionAverage)
     
     for person in place.people: 
+        if(numInfected == totalToBeInfected):
+            break
         if not person.infected:
             person.infected = True
             numInfected += 1
-        if(numInfected == totalToBeInfected):
-            break
+        
 
     
         
@@ -375,11 +403,13 @@ def mousePressed(app, event):
                 app.parks.append(Park(row,col))
             if(app.pieceSelected is app.restaurant):
                 app.restaurants.append(Restaurant(row,col))
+                
             if(app.pieceSelected is app.workPlace):
                 app.workPlaces.append(WorkPlace(row,col))
+                
             if(app.pieceSelected is app.school):
                 app.schools.append(School(row,col))
-                print(app.schools[0])
+                
             app.pieceSelected = None
             app.selectedName = None
 def countPerBuilding(app, canvas):
@@ -465,12 +495,15 @@ def drawRestaurants(app, canvas):
             canvas.create_rectangle(x0,y0,x1,y1, fill = 'yellow')
 
 def keyPressed(app, event):
+    if(event.key == 'p'):
+        app.pause = not app.pause
     if(app.mode1 and event.key == 's' ):
         app.mode1 = False
         app.mode2 = True
     elif(app.mode2 and event.key == 's'):
         app.mode2 = False
         app.mode3 = True
+        initializeSchoolsandWorkplaces(app)
         app.R0Low = int(app.getUserInput('Enter the lower bound of your disease\'s R0'))
         if(app.R0Low != None):
             app.R0High = int(app.getUserInput('Enter the upper bound of your disease\'s R0'))
@@ -478,11 +511,12 @@ def keyPressed(app, event):
             app.incubationTimeLow = int(app.getUserInput('Enter the lower bound of your disease\'s incubation period'))
         if(app.incubationTimeLow != None):
             app.incubationTimeHigh = int(app.getUserInput('Enter the upper bound of your disease\'s incubation period'))
+            initializeR0andIncubation(app)
+            app.houses[0].peoples[0].infected = True
             app.mode3 = False
             app.mode4 = True
-            initializeR0andIncubation(app)
-            initializeSchoolsandWorkplaces(app)
-            app.houses[0].people[0].infected = True
+           
+            
     
     
     if(event.key == 'r'):
@@ -510,7 +544,7 @@ def initializeHumans(app, canvas):
     if not app.mode4:
         return
     for house in app.houses:
-        for person in house.people:
+        for person in house.peoples:
             (x0,y0,x1,y1) = getPersonBounds(app, person.row, person.col)
             color = 'light green'
             if person.infected:
@@ -525,7 +559,7 @@ def drawCityBuilder(app, canvas):
         canvas.create_rectangle(400,0,600,50)
         canvas.create_text(500,25, text = 'park')
         canvas.create_rectangle(600,0,800,50)
-        canvas.create_text(700,25, text = 'restuarant')
+        canvas.create_text(700,25, text = 'restaurant')
         canvas.create_rectangle(800,0,1000,50)
         canvas.create_text(900,25, text = 'workplace')
         canvas.create_text(app.width/2,75, text = f'Piece Currently Selected: {app.selectedName}')
@@ -553,3 +587,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+   

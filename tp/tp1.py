@@ -47,26 +47,27 @@ class House(object):
         self.row = row
         self.col = column
         self.numberPeople = random.choice([1,2,3,4])
-        self.people = []
         self.numPeople = self.numberPeople
+        self.people = []
 
         if(self.numberPeople == 1 or self.numberPeople == 2):
             for x in range(self.numPeople):
                 personality = random.choice(['social', 'isolated', 'safe'])
-                self.people.append(Person(personality, 'worker', self.row , self.col + x))
+                self.people.append(Person(personality, 'worker', self.row , self.col + x, self))
         else:
             for x in range(2):
                 personality = random.choice(['social', 'isolated', 'safe'])
-                self.people.append(Person(personality, 'worker', self.row , self.col + x))
+                self.people.append(Person(personality, 'worker', self.row , self.col + x, self))
             for y in range(self.numberPeople - 2):
                 personality = random.choice(['social', 'isolated', 'safe'])
-                self.people.append(Person(personality, 'student', self.row + 1, self.col + y))
+                self.people.append(Person(personality, 'student', self.row + 1, self.col + y, self))
 
 
 class Person(object):
 
-    def __init__(self, personality, job, row ,col):
+    def __init__(self, personality, job, row ,col, house):
         self.personality = personality
+        self.house = house
         self.job = job
         self.infected = False
         self.stongerImmunity = random.choice(['strong', 'weak'])
@@ -230,10 +231,13 @@ def oneMovement(app):
                     if(person.job == 'student'):
                         person.goToSchool()
                         person.atHome = False
-                        
+                        person.house.people.remove(person)
+                        person.school.people.append(person)
                     #workers must go to work every weekday
                     elif(person.job == 'worker'):
                         person.goToWork()
+                        person.house.people.remove(person)
+                        person.workPlace.people.append(person)
                         person.atHome = False
                     for House in app.houses:
                         House.numPeople = 0
@@ -241,9 +245,15 @@ def oneMovement(app):
                 elif(app.dayTime == 1):
                     for school in app.schools:
                         infectionCalculation(app,school)
+                        if person in school.people:
+                            school.people.remove(person)
                     for work in app.workPlaces:
                         infectionCalculation(app, work)
+                        if person in work.people:
+                            work.people.remove(person)
                     person.goHome()
+                    person.house.people.append(person)
+                   
                     person.atHome = True
                     for workPlace in app.workPlaces:
                         workPlace.numPeople = 0
@@ -265,23 +275,31 @@ def oneMovement(app):
                             parkToGo = random.choice(app.parks)
                             person.goToPark(parkToGo)
                             person.parkVisits +=1
+                            parkToGo.people.append(person)
+                            person.house.people.remove(person)
                         #average american eats out 4 times a week, this model makes that the max
                         elif(person.restaurantVisits <= 4 and placeToGo == 'restaurant'):
                             restToGo = random.choice(app.restaurants)
                             person.goToRestaurant(restToGo)
                             person.restaurantVisits += 1
-                        """else:
-                            #need to implement some way of forcing that person to stay home
-                            placeToGo = person.friendsHouse
-                            person.goToFriendsHouse()"""
+                            restToGo.people.append(person)
+                            person.house.people.remove(person)
                         person.atHome = False
+                        
                 elif(app.dayTime == 3):
                     for restaurant in app.restaurant:
                         infectionCalculation(app,restaurant)
+                        if person in restaurant.people:
+                            restuarant.people.remove(person)
                     for park in app.parks:
                         infectionCalculation(app, park)
+                        if person in park.people:
+                            park.people.remove(person)
+                    person.house.people.append(person)
                     person.goHome()
                     person.atHome = True
+                    
+                    person.house.people.append(person)
                     for restaurant in app.restaurants:
                         restaurant.numPeople = 0
                     for park in app.parks:
@@ -296,7 +314,7 @@ def infectionCalculation(app,place):
 
     #given two dots and the infectivity statistics, determines whether one dot will infect another
     #variables considered will be R0, infectivity period(how long the disease is infectious), and the amount of people at a certain place
-    numPeopleTotal = len(place.numPeople)
+    numPeopleTotal = place.numPeople
     numInfected = 0
     totalToBeInfected = 0
     infectedList = []

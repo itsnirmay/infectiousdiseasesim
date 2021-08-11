@@ -17,6 +17,7 @@ class School(object):
         self.row = row
         self.col = col
         self.numPeople = 0
+        self.people = []
 
 
 class Park(object):
@@ -24,18 +25,21 @@ class Park(object):
         self.row = row
         self.col = col 
         self.numPeople = 0
+        self.people = []
 
 class Restaurant(object):
     def __init__(self, row, col):
         self.row = row
         self.col = col
         self.numPeople = 0
+        self.people = []
 
 class WorkPlace(object):
     def __init__(self, row, col):
         self.row = row
         self.col = col
         self.numPeople = 0
+        self.people = []
 
 class House(object):
     def __init__(self, row, column):

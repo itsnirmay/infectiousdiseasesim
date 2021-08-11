@@ -188,7 +188,7 @@ def appStarted(app):
     app.mode2 = False
     app.mode3 = False
     app.mode4 = False
-    app.timerDelay = 5000
+    app.timerDelay = 500
     app.pause = False
 def initializeSchoolsandWorkplaces(app):
     for house in app.houses:
@@ -211,7 +211,6 @@ def timerFired(app):
         app.dayTime = 0
         app.currDay += 1
     else:app.dayTime += 1
-    
     oneMovement(app)
 #algorithm to simulate movement for each person each day
 def oneMovement(app):
@@ -223,6 +222,7 @@ def oneMovement(app):
    max amount of times to go to restaurant is 4 a week since that is the average in reality, max park visits is 2
     3: everyone comes home (this is where family spread is calculated)
     '''
+    print('hello')
     for house in app.houses:
         for person in house.people:
             if(app.currDay % 7 < 5):
@@ -233,22 +233,26 @@ def oneMovement(app):
                         person.atHome = False
                         person.house.people.remove(person)
                         person.school.people.append(person)
+                        print('hello')
                     #workers must go to work every weekday
                     elif(person.job == 'worker'):
                         person.goToWork()
                         person.house.people.remove(person)
                         person.workPlace.people.append(person)
                         person.atHome = False
+                        print('hello')
                     for House in app.houses:
                         House.numPeople = 0
                 #everyone goes home
                 elif(app.dayTime == 1):
                     for school in app.schools:
                         infectionCalculation(app,school)
+                        
                         if person in school.people:
                             school.people.remove(person)
                     for work in app.workPlaces:
                         infectionCalculation(app, work)
+                        
                         if person in work.people:
                             work.people.remove(person)
                     person.goHome()
